@@ -1,0 +1,107 @@
+!pip install mglearn
+import mglearn
+mglearn.plots.plot_cross_validation()
+
+from sklearn.model_selection import KFold
+from tensorflow.keras.callbacks import EarlyStopping
+import numpy as np
+
+# Early stopping callback
+early_stop = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
+
+# Define 3-fold cross-validation
+kf = KFold(n_splits=3, shuffle=True, random_state=42)
+
+# Convert training images and labels to numpy arrays for KFold
+X_train_np = np.array(X_train)
+y_train_np = np.array(y_train_integar)
+
+# Iterate over the 3 folds
+for train_index, val_index in kf.split(X_train_np):
+    # Create the training and validation sets for this fold
+    X_train_fold, X_val_fold = X_train_np[train_index], X_train_np[val_index]
+    y_train_fold, y_val_fold = y_train_np[train_index], y_train_np[val_index]
+
+    # Create datasets for the current fold
+    train_images_fold = (
+        tf.data.Dataset.from_tensor_slices((X_train_fold, y_train_fold))
+        .map(lambda x, y: resize_images(x, y, new_size=(224, 224)), num_parallel_calls=tf.data.AUTOTUNE)
+        .shuffle(buffer_size=len(X_train_fold))
+        .repeat()
+        .batch(batch_size)
+        .prefetch(tf.data.AUTOTUNE)
+    )
+
+    val_images_fold = (
+        tf.data.Dataset.from_tensor_slices((X_val_fold, y_val_fold))
+        .map(lambda x, y: resize_images(x, y, new_size=(224, 224)), num_parallel_calls=tf.data.AUTOTUNE)
+        .batch(batch_size)
+        .prefetch(tf.data.AUTOTUNE)
+    )
+
+    # Train the model on the current fold
+    model_vit_b16.fit(train_images_fold, epochs=20, validation_data=val_images_fold,
+                      steps_per_epoch=len(X_train_fold) // batch_size,
+                      verbose=1, callbacks=[early_stop])
+# # After cross-validation, evaluate the model on the test set
+
+# test_images = (
+#     tf.data.Dataset.from_tensor_slices((X_test_np, y_test_np))
+#     .map(lambda x, y: resize_images(x, y, new_size=(224, 224)), num_parallel_calls=tf.data.AUTOTUNE)
+#     .batch(batch_size)
+#     .prefetch(tf.data.AUTOTUNE)
+# )
+
+# After cross-validation, evaluate the model on the test set
+# Assuming X_test and y_test are defined and are lists
+X_test_np = np.array(X_test)
+y_test_np = np.array(y_test)
+
+test_images = (
+    tf.data.Dataset.from_tensor_slices((X_test_np, y_test_np))
+    .map(lambda x, y: resize_images(x, y, new_size=(224, 224)), num_parallel_calls=tf.data.AUTOTUNE)
+    .batch(batch_size)
+    .prefetch(tf.data.AUTOTUNE)
+)
+
+# Get predictions from the model
+predictions = model_vit_b16.predict(test_images)
+
+# Convert predictions to class labels
+predicted_classes = np.argmax(predictions, axis=1)
+
+# Extract the true labels from the test dataset
+y_true = np.concatenate([y for x, y in test_images], axis=0)  # Collect true labels from the dataset
+
+# Evaluate the model on the unseen test dataset
+test_loss, test_accuracy = model_vit_b16.evaluate(test_images, verbose=1)
+
+# Calculate additional metrics
+accuracy = accuracy_score(y_true, predicted_classes)
+precision = precision_score(y_true, predicted_classes, average='macro')
+recall = recall_score(y_true, predicted_classes, average='macro')
+f1 = f1_score(y_true, predicted_classes, average='macro')
+
+# Print the evaluation results
+print(f"Test Accuracy: {test_accuracy:.4f}")
+print(f"Precision (Macro): {precision:.4f}")
+print(f"Recall (Macro): {recall:.4f}")
+print(f"F1 Score (Macro): {f1:.4f}")
+
+# Detailed classification report
+print("\nClassification Report:\n")
+print(classification_report(y_true, predicted_classes, target_names=list(class_names.values())))
+
+# Compute the confusion matrix
+cm = confusion_matrix(y_true, predicted_classes)
+
+# Display the confusion matrix with class names
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=list(class_names.values()))
+
+# Plotting the confusion matrix
+fig, ax = plt.subplots(figsize=(10, 10))
+disp.plot(ax=ax, cmap=plt.cm.Blues)
+plt.xticks(rotation=45, ha='right')  # Rotate class names on x-axis to avoid overlap
+plt.title('Confusion Matrix')
+plt.show()
+
