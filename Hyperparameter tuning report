@@ -1,0 +1,15 @@
+Hyperparameter Tuning Report
+
+In the process of hyperparameter tuning for the model, various configurations to optimize performance were systematically explored and two Visual Trnasformer models were built with and without early stopping. The tuning parameters included:
+
+Filters in Convolutional Layers: Filters of 32, 64, and 128 were experimented with in the first layer, while 64, 128, and 256 were tested in the second layer, and 128, 256, and 512 in the third layer, with the best performing configuration being 128 filters in the first layer.
+Kernel Sizes: Kernel sizes of 3 and 5 were evaluated, with 3 being the optimal choice.
+Activation Functions: Activation functions such as 'relu' and 'tanh' were examined, with 'tanh' being the best performing function.
+Regularization: L2 regularization values of 0.0, 0.001, and 0.01 were applied, with the best value being 0.01.
+Hidden Units: The first dense layer had options for 64, 128, and 256 hidden units, with 256 being the optimal configuration.
+Dropout Rates: Dropout rates of 0.25 and 0.5 were implemented, with 0.25 yielding the best results.
+Optimizer: Different optimizers, including Adam, SGD, and RMSprop, were compared, with Adam being selected as the optimal optimizer.
+Learning Rate: The learning rate for the Adam optimizer was fine-tuned to approximately 0.00011695529042992335.
+These tuned hyperparameters led to a model performance accuracy of 82% which showed a slightly lower performance than the original Visual Transformer model with 84%.
+
+Cross Validation technique will be adopted to address this discrepancy and enhance the model's robustness and generalizability.
