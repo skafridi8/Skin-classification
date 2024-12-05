@@ -1,0 +1,26 @@
+datagen = ImageDataGenerator(
+    rotation_range=20,           # Randomly rotate images by 20 degrees
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True,
+    fill_mode='nearest'    # Fill in missing pixels after transformation
+)
+
+
+def normalize_skin_images(image):
+    # Convert image to array
+    image_array = np.array(image)
+    # Normalize to range [0, 1]
+    normalized_image = image_array / 255.0
+    return normalized_image
+scaled_images = normalize_skin_images(balanced_images)
+
+X_train, X_val_test, y_train, y_val_test = train_test_split(scaled_images,
+                                                            image_labels, test_size=0.2,
+                                                            random_state=42,
+                                                            stratify=image_labels)
+
+X_test, X_val, y_test, y_val = train_test_split(X_val_test, y_val_test,
+                                                test_size=0.5, random_state=0, stratify=y_val_test)
