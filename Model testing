@@ -1,0 +1,29 @@
+def test_model(indices, model, class_names):
+    # Set figure size for 3 images
+    plt.figure(figsize=(12, 6))
+
+    for i, index in enumerate(indices):
+        # Plot original image
+        plt.subplot(1, 3, i + 1)
+
+        # Resize the image
+        resized_image = cv2.resize(X_test[index], (224, 224))
+
+        plt.imshow(resized_image)
+
+        # Make prediction and get class labels
+        predicted_prob = model.predict(resized_image.reshape(1, 224, 224, 3))
+        predicted_class_index = np.argmax(predicted_prob, axis=1)[0]
+        predicted_class = class_names[predicted_class_index]  # Get the class name from the index
+        true_class_index = y_test_integar[index]
+        true_class = class_names[true_class_index]
+
+        # Set title with true and predicted classes
+        plt.title(f'Original disease {index}: {true_class} \n Predicted disease: {predicted_class}')
+        plt.axis('off')
+
+    plt.tight_layout()
+    plt.show()
+
+# Test images with the ViT model
+test_model([72, 84, 95], model_vit_b16, class_names)  # Replace with desired indices
