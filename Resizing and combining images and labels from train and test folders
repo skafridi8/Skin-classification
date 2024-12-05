@@ -1,0 +1,47 @@
+# Function to read, combine, and resize images from a folder
+def read_images(directory, class_names, target_size=(128, 128)): #using moderate size for computational reasons
+    images = []
+    labels = []
+
+    # Read images and labels from each subdirectory
+    for label, class_name in class_names.items():
+        subdirectory_path = os.path.join(directory, class_name)
+
+        # Check if the subdirectory exists
+        if not os.path.exists(subdirectory_path):
+            print(f"Directory does not exist: {subdirectory_path}")
+            continue
+
+        for file_name in os.listdir(subdirectory_path):
+            file_path = os.path.join(subdirectory_path, file_name)
+
+            # Check if the file is an image file
+            if not file_name.lower().endswith(('.jpg', '.jpeg', '.png')):
+                print(f"Skipping non-image file: {file_name}")
+                continue
+
+            try:
+                # Load the image, convert to RGB, and resize to target size
+                image = Image.open(file_path).convert('RGB')
+                image = image.resize(target_size)  # Resize to 224x224
+                images.append(image)
+                labels.append(label)
+            except Exception as e:
+                print(f"Error loading image {file_path}: {e}")
+                continue
+
+    return images, labels
+# Set paths for train and test images
+train_folder = '/content/drive/MyDrive/Skin Diseases/train'
+test_folder = '/content/drive/MyDrive/Skin Diseases/val'
+# Load and combine images and labels from both directories
+train_images, train_labels = read_images(train_folder, class_names)
+test_images, test_labels = read_images(test_folder, class_names)
+
+# Combine both images
+combined_images = np.concatenate((train_images, test_images), axis=0)
+combined_labels = np.concatenate((train_labels, test_labels), axis=0)
+
+
+# Print to check if images and labels are loaded and combined correctly
+print(f"Total images: {len(combined_images)}, Total labels: {len(combined_labels)}")
