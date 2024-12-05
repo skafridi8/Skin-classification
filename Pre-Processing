@@ -1,0 +1,99 @@
+image_error = [i for i, img in enumerate(combined_images) if img is None]
+combined_images = [img for i, img in enumerate(combined_images) if i not in image_error]
+combined_labels = [lbl for i, lbl in enumerate(combined_labels) if i not in image_error]
+# Calculate the distribution of each label
+label_counts = [combined_labels.count(label) for label in class_names.keys()]
+
+# Define the figure size and color palette
+plt.figure(figsize=(10, 6))
+colors = plt.cm.viridis(np.linspace(0, 1, len(class_names)))
+
+# Create a bar plot with customized appearance
+bars = plt.bar(class_names.values(), label_counts, color=colors, edgecolor='black', width=0.6)
+
+# Customize labels and title
+plt.xlabel('Class Labels', fontsize=12, fontweight='bold', color='darkblue')
+plt.ylabel('Number of Images', fontsize=12, fontweight='bold', color='darkgreen')
+plt.title('Distribution of Classes in Training Set', fontsize=14, fontweight='bold', color='darkred')
+
+# Rotate x-axis labels and change alignment
+plt.xticks(rotation=45, ha='right', fontsize=10, color='purple')
+
+# Add data labels on top of each bar
+for bar in bars:
+    yval = bar.get_height()
+    plt.text(bar.get_x() + bar.get_width()/2, yval, int(yval), va='bottom', ha='center', fontsize=10, color='black')
+
+# Save and show the plot
+plt.tight_layout()
+plt.savefig("Distribution_of_Classes.png", dpi=300)
+plt.show()
+# Applying SMOTE
+from imblearn.over_sampling import SMOTE
+
+# Convert combined_images to a NumPy array
+combined_images = np.array(combined_images)
+
+# SMOTE only works with 2D arrays, so reshape images to 2D
+reshaped_images = combined_images.reshape(len(combined_images), -1)  # Flatten images
+
+# Applying SMOTE to balance the classes
+smote = SMOTE(sampling_strategy='auto')  # Auto balances all classes to majority class size
+
+# Apply SMOTE to reshaped images
+smote_images, image_labels = smote.fit_resample(reshaped_images, combined_labels)
+
+# Reshape the images back to their original dimensions i.e. 3D
+balanced_images = smote_images.reshape(-1, 128, 128, 3)
+
+# Check the length of the balanced images
+print(f"Balanced dataset size: {len(balanced_images)}")
+# check for distribution in each class
+class_labels, counts = np.unique(image_labels, return_counts=True)
+print("Number of images in each class:")
+for label, count in zip(class_labels, counts):
+    print(f"{label}: {count}")
+## Visualization of images
+
+import plotly.subplots as sp
+import plotly.graph_objs as go
+import random
+
+# Function to display images from a specific class
+def display_skin_images(images, labels, class_label, num_images=2):
+    return [img for img, lbl in zip(images, labels) if lbl == class_label][:num_images]
+
+# Initialize the subplot with rows and columns
+num_classes = len(class_names)
+num_images_per_class = 2
+fig = sp.make_subplots(
+    rows=num_images_per_class, cols=num_classes,
+    subplot_titles=[class_names[label] for label in class_names]
+)
+
+# Display two random images from each class
+for i, class_label in enumerate(class_names.keys()):
+    class_images = display_skin_images(balanced_images, image_labels, class_label, num_images=num_images_per_class)
+    for j, img in enumerate(class_images):
+        # Add the image to the subplot
+        fig.add_trace(
+            go.Image(z=img),
+            row=j+1, col=i+1
+        )
+
+# Update layout for better display
+fig.update_layout(
+    height=1000,
+    width=2000,
+    showlegend=False,
+    title_text="Images of Skin Diseases",
+    title_x=0.5,
+    title_y=0.95,
+    margin=dict(l=10, r=10, t=50, b=10)  # Adjust margins to avoid clipping
+)
+
+# Hide x and y axes
+fig.update_xaxes(showticklabels=False)
+fig.update_yaxes(showticklabels=False)
+
+fig.show()
