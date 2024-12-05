@@ -1,0 +1,182 @@
+!pip install keras-tuner
+from keras.optimizers import Adam, SGD, RMSprop
+from keras import layers, Sequential
+from kerastuner import HyperModel
+from kerastuner.tuners import RandomSearch
+from keras.regularizers import l2
+
+class CNNModelTuner(HyperModel):
+    def __init__(self):
+        pass
+
+    def build(self, hp):
+        # Create a Sequential CNN model
+        model = Sequential()
+        model.add(layers.Input(shape=(224, 224, 3)))  # Input layer
+
+        # Convolutional layer 1
+        model.add(layers.Conv2D(
+            filters=hp.Choice('filters_1', [32, 64, 128]),  # Tuning number of filters
+            kernel_size=hp.Choice('kernel_size_1', [3, 5]),  # Tuning kernel size
+            activation=hp.Choice('activation_function_1', ['relu', 'tanh']),  # Tuning activation function
+            padding='same'
+        ))
+        model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+
+        # Convolutional layer 2
+        model.add(layers.Conv2D(
+            filters=hp.Choice('filters_2', [64, 128, 256]),  # Tuning number of filters
+            kernel_size=hp.Choice('kernel_size_2', [3, 5]),  # Tuning kernel size
+            activation=hp.Choice('activation_function_2', ['relu', 'tanh']),  # Tuning activation function
+            padding='same'
+        ))
+        model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+
+        # Convolutional layer 3
+        model.add(layers.Conv2D(
+            filters=hp.Choice('filters_3', [128, 256, 512]),  # Tuning number of filters
+            kernel_size=hp.Choice('kernel_size_3', [3, 5]),  # Tuning kernel size
+            activation=hp.Choice('activation_function_3', ['relu', 'tanh']),  # Tuning activation function
+            padding='same'
+        ))
+        model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+
+        model.add(layers.Flatten())  # Flattening layer
+
+        # First fully connected (dense) layer
+        regularizer1 = None if hp.Choice('regularizer', [0.0, 0.001, 0.01]) == 0.0 else l2(hp.Choice('regularizer', [0.0, 0.001, 0.01]))
+        model.add(layers.Dense(
+            units=hp.Choice('hidden_units', [64, 128, 256]),  # Tuning hidden units
+            activation=hp.Choice('activation_function', ['relu', 'tanh']),  # Tuning activation function
+            kernel_regularizer=regularizer1
+        ))
+        model.add(layers.Dropout(rate=hp.Choice('dropout_rate', [0.25, 0.5])))
+
+        # Second fully connected (dense) layer
+        regularizer2 = None if hp.Choice('regularizer_2', [0.0, 0.001, 0.01]) == 0.0 else l2(hp.Choice('regularizer_2', [0.0, 0.001, 0.01]))
+        model.add(layers.Dense(
+            units=hp.Choice('hidden_units_2', [64, 128, 256]),  # Tuning second dense layer units
+            activation=hp.Choice('activation_function_2', ['relu', 'tanh']),  # Tuning second dense layer activation
+            kernel_regularizer=regularizer2
+        ))
+        model.add(layers.Dropout(rate=hp.Choice('dropout_rate', [0.25, 0.5])))
+
+        # Output layer for 9 classes
+        model.add(layers.Dense(9, activation='softmax'))
+
+        # Optimizer choice
+        optimizer_choice = hp.Choice('optimizer', ['adam', 'sgd', 'rmsprop'])
+        if optimizer_choice == 'adam':
+            optimizer = Adam(learning_rate=hp.Float('learning_rate', min_value=1e-5, max_value=1e-3, sampling='log'))
+        elif optimizer_choice == 'sgd':
+            optimizer = SGD(learning_rate=hp.Float('learning_rate', min_value=1e-5, max_value=1e-3, sampling='log'))
+        else:
+            optimizer = RMSprop(learning_rate=hp.Float('learning_rate', min_value=1e-5, max_value=1e-3, sampling='log'))
+
+        # Compile the model
+        model.compile(optimizer=optimizer,
+                      loss='sparse_categorical_crossentropy',
+                      metrics=['accuracy'])
+        return model
+# Initialize the tuner
+hp_tuner = RandomSearch(
+    CNNModelTuner(),
+    objective='val_accuracy',
+    max_trials=3,  # Number of trials to find the best combination
+    executions_per_trial=1,
+    directory='model_tuning',  # Directory to save tuning results
+    project_name='model_tuning'
+)
+# Print the best hyperparameters
+print(f"Regularizer 1: {best_hyperparameters.get('regularizer')}")
+print(f"Hidden Units 1: {best_hyperparameters.get('hidden_units')}")
+print(f"Activation Function 1: {best_hyperparameters.get('activation_function')}")
+print(f"Dropout Rate 1: {best_hyperparameters.get('dropout_rate')}")
+print(f"Regularizer 2: {best_hyperparameters.get('regularizer_2')}")
+print(f"Hidden Units 2: {best_hyperparameters.get('hidden_units_2')}")
+print(f"Activation Function 2: {best_hyperparameters.get('activation_function_2')}")
+print(f"Optimizer: {best_hyperparameters.get('optimizer')}")
+print(f"Learning Rate: {best_hyperparameters.get('learning_rate')}")
+
+# experiment the best hyperparameters on visual transformer
+
+# Load the pre-built Vision Transformer model - vit_b16
+vit_model = vit.vit_b16(
+    image_size=224,        # Image size (224x224)
+    pretrained=True,       # Use pretrained weights
+    include_top=False,     # Exclude the top classification layer
+    pretrained_top=False   # Exclude pretrained top layer
+)
+
+# Freeze the layers of the pre-trained ViT model
+for layer in vit_model.layers:
+    layer.trainable = False
+
+# Create a Sequential model and add layers
+model_vit_b16 = Sequential()
+model_vit_b16.add(Input(shape=(224, 224, 3)))  # Input layer with the correct input shape
+model_vit_b16.add(vit_model)
+model_vit_b16.add(Flatten())  # Flatten the output for dense layers
+
+# Adding custom fully connected layers based on best hyperparameters
+# Dense Layer 1 with 256 units, tanh activation, and L2 regularization (0.01)
+model_vit_b16.add(Dense(256, activation='tanh', kernel_regularizer=l2(0.01)))
+model_vit_b16.add(Dropout(0.25))  # Dropout rate 0.25
+
+# Dense Layer 2 with 256 units and tanh activation, no regularizer
+model_vit_b16.add(Dense(256, activation='tanh'))
+
+# Output Layer for 9-class classification
+model_vit_b16.add(Dense(9, activation='softmax'))
+
+# Define optimizer (Adam with best learning rate)
+opt = Adam(learning_rate=0.00011695529042992335)
+model_vit_b16.compile(optimizer=opt, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+# Print the model summary
+model_vit_b16.summary()
+# Training the ViT model without early stopping
+model_vit_b16_history = model_vit_b16.fit(train_images_2, epochs=20, validation_data= val_images_2,
+                                  batch_size=32, steps_per_epoch=len(X_train)//batch_size, verbose =1)
+
+# Training the ViT model with early stopping
+
+from tensorflow.keras.callbacks import EarlyStopping
+
+early_stop = EarlyStopping(monitor='val_loss', patience=3, restore_best_weights=True)
+
+model_vit_b16_history = model_vit_b16.fit(train_images_2, epochs=20, validation_data=val_images_2,
+                                          batch_size=32, steps_per_epoch=len(X_train)//batch_size,
+                                          verbose=1, callbacks=[early_stop])
+# evaluate cnn model's accuracy and loss across eopochs
+plot_accuracy_loss_chart(model_vit_b16_history, 'Optimized Visual Transformer Model')
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, classification_report, accuracy_score, precision_score, recall_score, f1_score
+
+y_pred_probs = model_vit_b16.predict(test_images_2)
+y_pred = np.argmax(y_pred_probs, axis=1)  # Convert probabilities to class labels
+
+# Extract the true labels from the test dataset
+y_true = np.concatenate([y for x, y in test_images_2], axis=0)  # Collect true labels from the dataset
+
+# Compute the confusion matrix
+cm = confusion_matrix(y_true, y_pred)
+
+# Display the confusion matrix with class names
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=list(class_names.values()))
+
+# Plot the confusion matrix with rotated x-axis labels
+fig, ax = plt.subplots(figsize=(10, 10))
+disp.plot(ax=ax, cmap=plt.cm.Blues)
+plt.xticks(rotation=45, ha='right')  # Rotate class names on x-axis to avoid overlap
+plt.title('Confusion Matrix')
+plt.show()
+
+# Compute and display additional metrics
+print("Accuracy:", accuracy_score(y_true, y_pred))
+print("Precision (macro):", precision_score(y_true, y_pred, average='macro'))
+print("Recall (macro):", recall_score(y_true, y_pred, average='macro'))
+print("F1 Score (macro):", f1_score(y_true, y_pred, average='macro'))
+
+# Detailed classification report
+print("\nClassification Report:\n")
+print(classification_report(y_true, y_pred, target_names=list(class_names.values())))
