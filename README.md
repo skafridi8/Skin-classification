@@ -26,3 +26,5 @@ Implementation of Custom CNN
 Implementation of advance transfer learning approaches e.g Densenet201, Visual Transformers
 Testing
 If posssible, Deploying with open source tools
+
+The performance of the ViT B16 model, achieving an accuracy of 84%, was notably superior to that of the hyperparameter-tuned and cross-validated variants. This suggests that the basic architecture, enhanced through transfer learning, was highly effective in recognizing complex patterns in the data. However, limitations persisted, as the model struggled to exceed 84% accuracy due to the dataset's inherent challenges, such as a balanced distribution of nine diverse classes and the difficulty in capturing images clearly. Future research could explore advanced transfer learning techniques, such as EfficientNet or Swin Transformer, along with fine-tuning pre-trained models to further enhance performance.
