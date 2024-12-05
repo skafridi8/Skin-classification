@@ -1,0 +1,40 @@
+from sklearn.preprocessing import LabelEncoder
+from tensorflow.keras.utils import to_categorical
+
+le = LabelEncoder()
+y_train_integar = le.fit_transform(y_train)
+y_val_integar = le.transform(y_val)
+y_test_integar = le.transform(y_test)
+
+# Convert integer labels to one-hot encoded labels
+y_train_cat= to_categorical(y_train_integar)
+y_val_cat = to_categorical(y_val_integar)
+y_test_cat = to_categorical(y_test_integar)
+train_images = tf.data.Dataset.from_tensor_slices((X_train, y_train_integar))
+test_images = tf.data.Dataset.from_tensor_slices((X_test, y_test_integar))
+val_images = tf.data.Dataset.from_tensor_slices((X_val, y_val_integar))
+
+batch_size = 64
+
+# Prepare the training dataset
+train_images = (
+    train_images
+    .shuffle(buffer_size=len(X_train))  # Shuffle the training set
+    .repeat()  # Repeat dataset for multiple epochs
+    .batch(batch_size)  # Batch the dataset
+    .prefetch(tf.data.AUTOTUNE)  # Optimize performance by prefetching
+)
+
+# Prepare the test dataset
+test_images = (
+    test_images
+    .batch(batch_size)  # Batch the test set
+    .prefetch(tf.data.AUTOTUNE)  # Prefetch for better performance
+)
+
+# Prepare the validation dataset
+val_images = (
+    val_images
+    .batch(batch_size)  # Batch the validation set
+    .prefetch(tf.data.AUTOTUNE)  # Prefetch to optimize speed
+)
